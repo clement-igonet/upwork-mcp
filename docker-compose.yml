@@ -1,0 +1,20 @@
+services:
+  upwork-mcp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: upwork-mcp
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      MCP_TRANSPORT: sse
+      MCP_PORT: "8080"
+    env_file:
+      - ../.env          # shared Freelance/.env one level up
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/sse')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
