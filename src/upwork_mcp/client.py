@@ -960,6 +960,9 @@ class UpworkClient:
         h.pop("authorization", None)
         if self._xsrf:
             h["x-odesk-csrf-token"] = self._xsrf
+        tenant = self._session.cookies.get("current_organization_uid")
+        if tenant:
+            h["x-upwork-api-tenantid"] = tenant
         return h
 
     async def find_skills(self, query: str, limit: int = 20) -> Any:
@@ -1131,22 +1134,13 @@ class UpworkClient:
         skill_ids: list of ontology skill IDs from find_skills.
         Max 15 skills per Upwork's limit.
         """
-        await self.ensure_auth()
         skills = [{"skillID": sid} for sid in skill_ids[:15]]
-        resp = await self._session.post(
-            f"{GRAPHQL_URL}?alias=updateSkillsGql",
-            json={
-                "query": """
-                mutation updateTalentProfileSkills($input: TalentProfileSkillsInput!) {
-                  updateTalentProfileSkills(input: $input) { status }
-                }
-                """,
-                "variables": {"input": {"skills": skills}},
-            },
-            headers=self._cookie_only_headers(),
+        return await self.graphql(
+            "updateSkillsGql",
+            """
+            mutation updateTalentProfileSkills($input: TalentProfileSkillsInput!) {
+              updateTalentProfileSkills(input: $input) { status }
+            }
+            """,
+            {"input": {"skills": skills}},
         )
-        resp.raise_for_status()
-        body = resp.json()
-        if "errors" in body:
-            raise RuntimeError(f"GraphQL errors [updateSkillsGql]: {body['errors']}")
-        return body.get("data")
