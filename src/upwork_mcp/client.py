@@ -954,8 +954,8 @@ class UpworkClient:
     # Portfolio
     # ------------------------------------------------------------------
 
-    def _portfolio_headers(self) -> dict[str, str]:
-        """Cookie-only headers for portfolio mutations (no Bearer per HAR analysis)."""
+    def _cookie_only_headers(self) -> dict[str, str]:
+        """Cookie-only headers for mutations that reject Bearer auth (skills, portfolio)."""
         h = dict(_API_HEADERS)
         h.pop("authorization", None)
         if self._xsrf:
@@ -1090,10 +1090,63 @@ class UpworkClient:
         resp = await self._session.post(
             f"{GRAPHQL_URL}?alias=createPortfolioProject",
             json={"query": mutation, "variables": {"project": project}},
-            headers=self._portfolio_headers(),
+            headers=self._cookie_only_headers(),
         )
         resp.raise_for_status()
         body = resp.json()
         if "errors" in body:
             raise RuntimeError(f"GraphQL errors [createPortfolioProject]: {body['errors']}")
+        return body.get("data")
+
+    # ------------------------------------------------------------------
+    # Skills
+    # ------------------------------------------------------------------
+
+    async def get_profile_skills(self, profile_url: str = "~01f6303b10e07608a5") -> Any:
+        """Return skills currently set on the profile."""
+        return await self.graphql(
+            "getProfileSkills",
+            """
+            query getProfileSkills($profileUrl: String) {
+              talentVPDAuthProfile(filter: { profileUrl: $profileUrl }) {
+                profile {
+                  skills {
+                    node {
+                      uid: id
+                      prettyName
+                      active
+                      rank
+                    }
+                  }
+                }
+              }
+            }
+            """,
+            {"profileUrl": profile_url},
+        )
+
+    async def update_profile_skills(self, skill_ids: list[str]) -> Any:
+        """Replace the profile skill list (full replace, not append).
+
+        skill_ids: list of ontology skill IDs from find_skills.
+        Max 15 skills per Upwork's limit.
+        """
+        await self.ensure_auth()
+        skills = [{"skillID": sid} for sid in skill_ids[:15]]
+        resp = await self._session.post(
+            f"{GRAPHQL_URL}?alias=updateSkillsGql",
+            json={
+                "query": """
+                mutation updateTalentProfileSkills($input: TalentProfileSkillsInput!) {
+                  updateTalentProfileSkills(input: $input) { status }
+                }
+                """,
+                "variables": {"input": {"skills": skills}},
+            },
+            headers=self._cookie_only_headers(),
+        )
+        resp.raise_for_status()
+        body = resp.json()
+        if "errors" in body:
+            raise RuntimeError(f"GraphQL errors [updateSkillsGql]: {body['errors']}")
         return body.get("data")

@@ -585,6 +585,37 @@ async def create_portfolio_project(
 
 
 # ===========================================================================
+# SKILLS
+# ===========================================================================
+
+
+@mcp.tool()
+async def get_profile_skills(profile_url: str = "~01f6303b10e07608a5") -> dict:
+    """Return the skills currently listed on a freelancer profile.
+
+    Args:
+        profile_url: Upwork profile URL slug (default: the authenticated user's).
+    """
+    return await _c().get_profile_skills(profile_url=profile_url)
+
+
+@mcp.tool()
+async def update_profile_skills(skill_ids: list[str]) -> dict:
+    """Replace the authenticated freelancer's skill list (full replace, not append).
+
+    Use find_skills to look up skill IDs by name before calling this.
+    Upwork's limit is 15 skills — any extras are silently dropped.
+
+    Args:
+        skill_ids: List of ontology skill IDs from find_skills.
+                   Example: ["1031626741159280640", "996364628025274383"]
+    """
+    if not skill_ids:
+        raise ValueError("skill_ids must not be empty.")
+    return await _c().update_profile_skills(skill_ids=skill_ids)
+
+
+# ===========================================================================
 # RESOURCE — geospatial profile template
 # ===========================================================================
 

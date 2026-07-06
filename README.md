@@ -4,7 +4,7 @@ MCP (Model Context Protocol) server for Upwork — lets AI assistants like Claud
 
 ## Features
 
-31 tools across six categories:
+33 tools across six categories:
 
 **Profile & Account**
 - `get_user_context` — logged-in user ID and account info
@@ -45,6 +45,13 @@ MCP (Model Context Protocol) server for Upwork — lets AI assistants like Claud
 
 **Rates & Contractors**
 - `get_contractor_rate` — hourly rate for another freelancer
+
+**Portfolio & Skills**
+- `find_skills` — search skill ontology by name, returns IDs
+- `upload_portfolio_image` — upload image to Upwork CDN
+- `create_portfolio_project` — add a portfolio project to your profile
+- `get_profile_skills` — list current skills on a profile
+- `update_profile_skills` — replace skill list (full replace, up to 15 skills)
 
 ## Setup
 
